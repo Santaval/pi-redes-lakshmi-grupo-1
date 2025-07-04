@@ -28,6 +28,9 @@ static void handle_sigint(int) {
     if (g_server_instance) {
         g_server_instance->stopBroadcastThread();
         g_server_instance->closeListeningSocket();
+        // Send shutdown broadcast before stopping threads
+        std::string offMsg = "BEGIN/OFF/SERVIDOR/" + g_server_instance->getMyAddress() + "/" + std::to_string(g_server_instance->getClientPort()) + "/END";
+        g_server_instance->sendBroadcast(offMsg);
     }
 }
 
@@ -88,14 +91,11 @@ int Server::start(const char * address) {
     this->broadcastRunning = true;
     std::string broadcastMsg = "BEGIN/ON/SERVIDOR/"+ std::string(this->myAddress) + "/" + std::to_string(this->clientPort) + "/END";
     this->broadcastThread = std::thread([this, broadcastMsg]() {
-        while (this->broadcastRunning) {
-            this->sendBroadcast(broadcastMsg);
-            std::this_thread::sleep_for(std::chrono::seconds(5));
-        }
+       // while (this->broadcastRunning) {
+        this->sendBroadcast(broadcastMsg);
+           // std::this_thread::sleep_for(std::chrono::seconds(5));
+       // }
 
-        // Send shutdown broadcast before stopping threads
-        std::string offMsg = "BEGIN/OFF/SERVIDOR/" + g_server_instance->getMyAddress() + "/" + std::to_string(g_server_instance->getClientPort()) + "/END";
-        g_server_instance->sendBroadcast(offMsg);
     });
 
     // this->initSocket = new SSLSocket(true);
