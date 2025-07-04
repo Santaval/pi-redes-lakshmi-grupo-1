@@ -141,6 +141,7 @@ std::string Server::decipherRequest(char* request) {
 		} else if (path.find("/resources/") == 0) {
 			// Handle specific resource request
 			std::string filename = path.substr(11); // Remove "/resources/"
+			std::cout << "[+] Requested file: " << filename << std::endl;
 			response = this->fs->getFile(filename.c_str());
 			
 			// Determine content type based on file extension
