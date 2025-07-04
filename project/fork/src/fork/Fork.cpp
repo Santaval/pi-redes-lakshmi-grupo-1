@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string>
 #include <vector>
+#include <fstream>
 #include "./includes/Fork.hpp"
 #include "http/HttpParser.h"
 #include "sockets/includes/BroadcastSocket.hpp"
@@ -47,6 +48,7 @@ int Fork::handleClientConnection(char buffer[256], VSocket* socket) {
 }
 
 int Fork::start(const char * address) {
+
 	// init broadcast listener
 	this->broadcastListener = new ForkBroadcastListener(this->serverManager);
 	if (this->broadcastListener == nullptr) {
@@ -70,6 +72,8 @@ int Fork::start(const char * address) {
 
 		if (this->initSocket->MarkPassive() == 0) {
 			std::cout << "[+] Server listening on 0.0.0.0:" << this->clientPort << "\n";
+			this->sendBroadcast("BEGIN/ON/TENEDOR/" + std::string(this->myAddress) + "/" + std::to_string(this->clientPort) + "/END");
+
 
 			while (true) {	// loop for clients connections
 				VSocket* newSock = this->initSocket->AcceptConnection(&this->clientAddr);
@@ -114,6 +118,76 @@ int Fork::start(const char * address) {
 	}
 	return 0;
 }
+
+
+std::vector<std::string> Fork::getBroadcastIPs() {
+    std::vector<std::string> ips;
+    std::ifstream file("./config/broadcast.txt");
+    if (!file.is_open()) {
+        std::cerr << "Could not open broadcast.txt" << std::endl;
+        return ips;
+    }
+    std::string line;
+    while (std::getline(file, line)) {
+        // Remove possible carriage return or whitespace
+        line.erase(line.find_last_not_of(" \r\n") + 1);
+        if (!line.empty()) {
+            ips.push_back(line);
+        }
+    }
+    return ips;
+}
+
+void Fork::sendBroadcast(const std::string& message) {
+    std::vector<std::string> ips = getBroadcastIPs();
+    for (const auto& ip : ips) {
+        try {
+            std::cout << "[+] Sending broadcast message to " << ip << ": " << message << std::endl;
+            
+            // Create a simple UDP socket manually for broadcasting
+            int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+            if (sockfd < 0) {
+                std::cerr << "Error creating socket for broadcast" << std::endl;
+                continue;
+            }
+            
+            // Enable broadcast
+            int broadcastEnable = 1;
+            if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &broadcastEnable, sizeof(broadcastEnable)) < 0) {
+                std::cerr << "Error enabling broadcast" << std::endl;
+                close(sockfd);
+                continue;
+            }
+            
+            // Set up address
+            struct sockaddr_in addr;
+            memset(&addr, 0, sizeof(addr));
+            addr.sin_family = AF_INET;
+            addr.sin_port = htons(1234);
+            addr.sin_addr.s_addr = inet_addr(ip.c_str());
+            
+            // Send the message
+            ssize_t sent = sendto(sockfd, message.c_str(), message.length(), 0, (struct sockaddr*)&addr, sizeof(addr));
+            if (sent < 0) {
+                std::cerr << "Error sending broadcast message" << std::endl;
+            }
+            
+            // Close the socket
+            close(sockfd);
+            
+        } catch (const std::exception& e) {
+            std::cerr << "Error sending broadcast to " << ip << ": " << e.what() << std::endl;
+        }
+    }
+}
+
+
+
+
+
+
+
+
 
 Fork::~Fork() {
 	if (this->broadcastListener) {

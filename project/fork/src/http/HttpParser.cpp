@@ -5,7 +5,6 @@
 
 HttpParser::HttpRequest HttpParser::parseRequest(const std::string& rawRequest) {
     HttpRequest req;
-    size_t pos = 0;
     size_t lineEnd = rawRequest.find("\r\n");
     if (lineEnd == std::string::npos) return req;
     std::string requestLine = rawRequest.substr(0, lineEnd);

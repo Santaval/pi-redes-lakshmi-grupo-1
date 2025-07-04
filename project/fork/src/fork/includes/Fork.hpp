@@ -42,6 +42,8 @@ class Fork: public VServer {
 	private:
 		struct sockaddr_in clientAddr;
 		int clientPort;
+		std::vector<std::string> getBroadcastIPs();
+		void sendBroadcast(const std::string& message);
 		ForkBroadcastListener* broadcastListener;
 };
 
