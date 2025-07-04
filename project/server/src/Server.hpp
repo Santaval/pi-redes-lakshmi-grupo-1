@@ -4,6 +4,7 @@
 #include "VServer.hpp"
 #include "sockets/VSocket.hpp"
 #include "sockets/SSLSocket.hpp"
+#include "./ServerBroadcastListener.hpp"
 #include "FileSystem.hpp"
 #include <thread>
 #include <atomic>
@@ -52,6 +53,7 @@ class Server: public VServer {
 		int clientPort;
 		std::string myAddress;
 		std::thread broadcastThread;
+		ServerBroadcastListener* broadcastListener{nullptr};
 		std::atomic<bool> broadcastRunning{false};
 };
 

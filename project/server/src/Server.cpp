@@ -9,7 +9,7 @@
 #include "sockets/BroadcastSocket.hpp"
 #include "pig/includes/ProtocolParser.h"
 #include "pig/includes/Message.h"
-
+#include "./ServerBroadcastListener.hpp"
 
 #include "Server.hpp"
 #include <netinet/in.h>
@@ -68,6 +68,18 @@ int Server::handleClientConnection(char buffer[256], VSocket* socket) {
 
 int Server::start(const char * address) {
     this->ipAddress = address;
+
+    // init broadcast listener
+	this->broadcastListener = new ServerBroadcastListener();
+	if (this->broadcastListener == nullptr) {
+		throw std::runtime_error("Fork::start - Failed to create broadcast listener");
+		return -1;
+	}
+	// start broadcast listener in a separate thread
+	if (this->broadcastListener->Thread::start() != 0) {
+		std::cerr << "[-] Failed to start broadcast listener." << std::endl;
+		return -1;
+	}
 
     // Register signal handler for graceful shutdown
     std::signal(SIGINT, handle_sigint);
